@@ -25,6 +25,23 @@ def testarray(*dims) :
     # Bring it to the desired dimension
     return res.reshape(dims)
 
+def describe(obj) :
+    """ Exploratory introspection function that outputs information on 
+    allattributes of an object.
+    Tends to print a lot of output, so it might be advised to pipe or send it 
+    to a file over which one can easily search.
+    """
+    for key in dir(obj) :
+        try :
+            val = getattr(obj, key)
+        except AttributeError :
+            continue
+        if callable(val) :
+            help(val)
+        else :
+            print('{k} => {v!r}'.format(k=key, v=val))
+        print(80*'-')
+
 def multiple_exponential(t, i=0, *A_TAU) :
     """
     Recursively build a function of the form
@@ -59,7 +76,6 @@ def multiple_exponential(t, i=0, *A_TAU) :
     else :
         return A_TAU[i] * np.exp(-t/A_TAU[order+i])
 
-
 def stretched_exponential(t, A, tau, h) :
     """
     Implement stretched exponentail decay:
@@ -67,7 +83,6 @@ def stretched_exponential(t, A, tau, h) :
         f(t) = A * exp( - (t/tau)^(1/h) )
     """
     return A * np.exp(-(t/tau)**(1./h))
-
 
 def chi2(y, f, sigma, normalize=True) :
     """
@@ -92,3 +107,24 @@ def chi2(y, f, sigma, normalize=True) :
     res = sum( ( (y-f)/sigma )**2 )
     res = res/len(y) if normalize else res
     return res
+
+def indexof(value, array) :
+    """ 
+    Return the first index of the value in the array closest to the given 
+    :param: `value`.
+
+    Example
+    -------
+    >>> a = np.array([1, 0, 0, 2, 1])
+    >>> indexof(0, a)
+    1
+    >>> indexof(0.9, a)
+    0
+    """
+    return np.argmin(np.abs(array - value))
+
+def argsort(lst, index_list) :
+    """
+    Sort 
+    """
+    pass

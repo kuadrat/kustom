@@ -165,11 +165,11 @@ def make_n_colors(n=8, cmap='plasma') :
 # | Colormap | # ===============================================================
 # +----------+ #
 
-# Rainbox ligth colormap from ALS
+# Rainbow ligth colormap from ALS
 # ------------------------------------------------------------------------------
 
 # Load the colormap data from file
-filepath = '/home/kevin/bin/kustom/rainbow_light.dat'
+filepath = '/home/kevin/bin/kustom/cmaps/rainbow_light.dat'
 data = np.loadtxt(filepath)
 colors = np.array([(i[0], i[1], i[2]) for i in data])
 
@@ -185,7 +185,7 @@ cm.register_cmap(name='rainbow_light', cmap=rainbow_light)
 # ------------------------------------------------------------------------------
 
 # Load the colormap data from file
-filepath = '/home/kevin/bin/kustom/hanin.dat'
+filepath = '/home/kevin/bin/kustom/cmaps/hanin.dat'
 data = np.loadtxt(filepath)
 colors = np.array([(i[0], i[1], i[2]) for i in data])
 
@@ -193,6 +193,18 @@ colors = np.array([(i[0], i[1], i[2]) for i in data])
 hanin = LinearSegmentedColormap.from_list('hanin', colors, 
                                                   N=len(colors))
 cm.register_cmap(name='hanin', cmap=hanin)
+
+# kocean colormap: ocean_r with different peak color
+# ------------------------------------------------------------------------------
+
+# Load the colormap data from file
+filepath = '/home/kevin/bin/kustom/cmaps/kocean_red.dat'
+data = np.loadtxt(filepath)
+colors = np.array([(i[0], i[1], i[2], i[3]) for i in data]) #rgba
+
+# Build the colormap
+kocean = LinearSegmentedColormap.from_list('kocean', colors, N=len(colors))
+cm.register_cmap(name='kocean', cmap=kocean)
 
 # ARPES colormap
 # ------------------------------------------------------------------------------
@@ -423,6 +435,7 @@ class cursorax(Axes) :
         self.set_ylim((ymin, ymax))
 
         self.figure.canvas.draw()
+        #self.figure.canvas.blit(self.bbox)
 
     def on_press(self, event):
         # Get the name of the pressed key and info on the current cursors
@@ -490,6 +503,7 @@ class cursorpolyax(cursorax) :
       <matplotlib.widgets.PolygonSelector>`'s default 'remove' key (Esc) 
       messes up reaction to :class: `cursorpolyax 
       <kustom.plotting.cursorpolyax`' keybinds.
+    * Shift-dragging polygon makes the cursor jump.
     """
     # The name under which this class of axes will be accessible from matplotlib
     name = 'cursorpoly'
@@ -501,6 +515,9 @@ class cursorpolyax(cursorax) :
 
     draw_key = 'd'
     remove_key = 'e'
+
+    # Blitting leads to weird behaviour
+    useblit = False
 
     #first_time_complete = True
 
@@ -528,23 +545,31 @@ class cursorpolyax(cursorax) :
 
         if event.key == self.remove_key :
             # Remove the polygon and release the lock
-            self.remove_poly()
+            self.remove_polygon()
             return
 
         elif event.key == self.draw_key :
-            # Remove the previous polygon
-            if self.poly and self.poly._polygon_completed :
-                self.remove_poly()
+            self.enter_draw_mode()
 
-            # Reset the flag indicating the first completion of a new polygon
-            #self.first_time_complete = True
+    def enter_draw_mode(self) :
+        """ 
+        Ensure that the next click after this fcn call will start drawing 
+        the polygon. 
+        """
+        # Remove the previous polygon
+        if self.poly and self.poly._polygon_completed :
+            self.remove_polygon()
 
-            # Create a PolygonSelector object and attach the draw lock to 
-            # it 
-            self.poly = PolygonSelector(self, self._on_polygon_complete, 
-                                        lineprops=self.polylineprops, 
-                                        markerprops=self.polymarkerprops)
-            self.figure.canvas.widgetlock(self.poly)
+        # Reset the flag indicating the first completion of a new polygon
+        #self.first_time_complete = True
+
+        # Create a PolygonSelector object and attach the draw lock to 
+        # it 
+        self.poly = PolygonSelector(self, self._on_polygon_complete, 
+                                    lineprops=self.polylineprops, 
+                                    markerprops=self.polymarkerprops,
+                                    useblit=self.useblit)
+        self.figure.canvas.widgetlock(self.poly)
 
     def on_click(self, event) :
         """ 
@@ -559,19 +584,21 @@ class cursorpolyax(cursorax) :
             self.figure.canvas.widgetlock.release(self.poly)
         super().on_click(event)
 
-    def remove_poly(self) :
+    def remove_polygon(self) :
         """ 
         Make the polygon invisible, remove the reference to it (which 
         should cause the underlying :class: `PolygonSelector 
         <matplotlib.widgets.PolygonSelector>` object to be garbage collected) 
         and release the draw lock.
         """
+        if not self.poly : return
         try :
             self.figure.canvas.widgetlock.release(self.poly)
         except :
             pass
         self.poly.set_visible(False)
         self.poly = None
+        self.figure.canvas.draw()
 
     def _on_polygon_complete(self, vertices) :
         """ 
@@ -589,6 +616,7 @@ class cursorpolyax(cursorax) :
         #if self.first_time_complete :
         self.on_polygon_complete(vertices)
         #self.first_time_complete = False
+        #self.figure.canvas.draw_idle()
 
     def on_polygon_complete(self, vertices) :
         """ This method should be overridden/redefined by user. """
@@ -600,18 +628,21 @@ register_projection(cursorpolyax)
 
 if __name__ == "__main__" :
     import matplotlib.pyplot as plt
-    register_projection(cursorax)
     figsize=(10,1)
     fig1 = plt.figure(figsize=figsize)
     #ax = fig.add_subplot(111, projection='cursor')
-    ax1 = fig1.add_axes([0,0,1,1])
-    fig2 = plt.figure(figsize=figsize)
-    ax2 = fig2.add_axes([0,0,1,1])
+    ax1 = fig1.add_axes([0,0,1,0.5])
+    #fig2 = plt.figure(figsize=figsize)
+    ax2 = fig1.add_axes([0,0.5,1,0.5])
+    ax2.set_xticks([])
 
     r = range(256)
     d = np.array([r])
     ax1.pcolormesh(d, cmap='viridis')
-    ax2.pcolormesh(d, cmap='hanin')
+    ax2.pcolormesh(d, cmap='kocean')
+
+    fig2 = plt.figure()
+    ax3 = fig2.add_subplot(111, projection='cursorpoly')
 
     plt.show()
 
