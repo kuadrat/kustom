@@ -212,6 +212,17 @@ cm.register_cmap(name='kocean', cmap=kocean)
 #from kustom.kolormap import cmap
 #cm.register_cmap(name='arpes', cmap=cmap)
 
+# Neutron spectroscopy colormap
+# ------------------------------------------------------------------------------
+
+filepath = '/home/kevin/bin/kustom/cmaps/mslice.dat'
+data = np.loadtxt(filepath)
+colors = np.array([(i[0], i[1], i[2]) for i in data]) #rgb
+
+# Build the colormap
+mslice = LinearSegmentedColormap.from_list('msclice', colors, N=len(colors))
+cm.register_cmap(name='msclice', cmap=msclie)
+
 # Custom normalizations
 # ------------------------------------------------------------------------------
 class MidpointNorm(matplotlib.colors.Normalize) :
