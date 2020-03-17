@@ -343,7 +343,6 @@ class DynamicNorm(matplotlib.colors.Normalize) :
     def __call__(self, value, clip=None) :
         return np.ma.masked_array(np.interp(value, self.bins, self.interval))
 
-
 # +---------+ #
 # | Cursors | # ================================================================
 # +---------+ #
@@ -701,6 +700,39 @@ class cursorpolyax(cursorax) :
 # Register the cursorax upon import
 register_projection(cursorax)
 register_projection(cursorpolyax)
+
+# +----------------+ #
+# | 3D Annotations | # =========================================================
+# +----------------+ #
+
+from mpl_toolkits.mplot3d.proj3d import proj_transform
+from matplotlib.text import Annotation
+
+class Annotation3D(Annotation):
+    """ Source: 
+    https://stackoverflow.com/questions/
+    10374930/matplotlib-annotating-a-3d-scatter-plot
+    Annotate the point xyz with text s.
+    """
+    def __init__(self, s, xyz, *args, **kwargs):
+        Annotation.__init__(self,s, xy=(0,0), *args, **kwargs)
+        self._verts3d = xyz        
+
+    def draw(self, renderer):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        self.xy=(xs,ys)
+        Annotation.draw(self, renderer)
+
+def annotate3D(ax, s, *args, **kwargs):
+    """ Source: 
+    https://stackoverflow.com/questions/
+    10374930/matplotlib-annotating-a-3d-scatter-plot
+    Add anotation text s to Axes3d.
+    """
+    tag = Annotation3D(s, *args, **kwargs)
+    ax.add_artist(tag)
+    return tag
 
 if __name__ == "__main__" :
     import matplotlib.pyplot as plt
